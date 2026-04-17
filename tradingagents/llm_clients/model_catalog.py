@@ -100,6 +100,18 @@ MODEL_OPTIONS: ProviderModeOptions = {
         ],
     },
     # OpenRouter: fetched dynamically. Azure: any deployed model name.
+    "kimi": {
+        "quick": [
+            ("Kimi K2 - Fast coding assistant", "kimi-k2-0711-preview"),
+            ("Kimi K2.5 - Balanced reasoning", "kimi-k2.5"),
+            ("Custom model ID", "custom"),
+        ],
+        "deep": [
+            ("Kimi K2.5 - Deep reasoning", "kimi-k2.5"),
+            ("Kimi K2 - Coding and analysis", "kimi-k2-0711-preview"),
+            ("Custom model ID", "custom"),
+        ],
+    },
     "ollama": {
         "quick": [
             ("Qwen3:latest (8B, local)", "qwen3:latest"),
@@ -123,12 +135,5 @@ def get_model_options(provider: str, mode: str) -> List[ModelOption]:
 def get_known_models() -> Dict[str, List[str]]:
     """Build known model names from the shared CLI catalog."""
     return {
-        provider: sorted(
-            {
-                value
-                for options in mode_options.values()
-                for _, value in options
-            }
-        )
-        for provider, mode_options in MODEL_OPTIONS.items()
+        provider: sorted({value for options in mode_options.values() for _, value in options}) for provider, mode_options in MODEL_OPTIONS.items()
     }

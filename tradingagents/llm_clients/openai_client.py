@@ -1,6 +1,7 @@
 import os
 from typing import Any, Optional
 
+import httpx
 from langchain_openai import ChatOpenAI
 
 from .base_client import BaseLLMClient, normalize_content
@@ -18,10 +19,16 @@ class NormalizedChatOpenAI(ChatOpenAI):
     def invoke(self, input, config=None, **kwargs):
         return normalize_content(super().invoke(input, config, **kwargs))
 
+
 # Kwargs forwarded from user config to ChatOpenAI
 _PASSTHROUGH_KWARGS = (
-    "timeout", "max_retries", "reasoning_effort",
-    "api_key", "callbacks", "http_client", "http_async_client",
+    "timeout",
+    "max_retries",
+    "reasoning_effort",
+    "api_key",
+    "callbacks",
+    "http_client",
+    "http_async_client",
 )
 
 # Provider base URLs and API key env vars
@@ -30,6 +37,7 @@ _PROVIDER_CONFIG = {
     "deepseek": ("https://api.deepseek.com", "DEEPSEEK_API_KEY"),
     "qwen": ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "DASHSCOPE_API_KEY"),
     "glm": ("https://api.z.ai/api/paas/v4/", "ZHIPU_API_KEY"),
+    "kimi": ("https://api.kimi.com/coding/v1", "KIMI_API_KEY"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "ollama": ("http://localhost:11434/v1", None),
 }
@@ -71,6 +79,10 @@ class OpenAIClient(BaseLLMClient):
                 llm_kwargs["api_key"] = "ollama"
         elif self.base_url:
             llm_kwargs["base_url"] = self.base_url
+
+        # Kimi requires a custom User-Agent header
+        if self.provider == "kimi" and "http_client" not in llm_kwargs:
+            llm_kwargs["http_client"] = httpx.Client(headers={"User-Agent": "KimiCLI/1.30.0"})
 
         # Forward user-provided kwargs
         for key in _PASSTHROUGH_KWARGS:
