@@ -9,7 +9,7 @@ from tradingagents.utils.stock_utils import StockUtils, StockMarket
 
 console = Console()
 
-TICKER_INPUT_EXAMPLES = "Examples: AAPL, 600519.SH, 000001.SZ, 0700.HK"
+TICKER_INPUT_EXAMPLES = "Examples: SPY, CNC.TO, 7203.T, 0700.HK"
 
 ANALYST_ORDER = [
     ("Market Analyst", AnalystType.MARKET),
@@ -24,73 +24,6 @@ CHINA_ANALYST_ORDER = [
     ("Fundamentals Analyst", AnalystType.FUNDAMENTALS),
     ("China Market Analyst", AnalystType.CHINA_MARKET),
 ]
-
-CHINA_PROVIDER_MODELS = {
-    "deepseek": {
-        "quick": [
-            ("DeepSeek Chat (V3) - General purpose", "deepseek-chat"),
-            ("DeepSeek Reasoner (R1) - Deep reasoning", "deepseek-reasoner"),
-        ],
-        "deep": [
-            ("DeepSeek Reasoner (R1) - Deep reasoning", "deepseek-reasoner"),
-            ("DeepSeek Chat (V3) - General purpose", "deepseek-chat"),
-        ],
-    },
-    "dashscope": {
-        "quick": [
-            ("Qwen Turbo - Fast response", "qwen-turbo"),
-            ("Qwen Plus - Balanced", "qwen-plus"),
-            ("Qwen Max - Most powerful", "qwen-max"),
-        ],
-        "deep": [
-            ("Qwen Max - Most powerful", "qwen-max"),
-            ("Qwen Plus - Balanced", "qwen-plus"),
-            ("Qwen Long - Long context", "qwen-long"),
-        ],
-    },
-    "zhipu": {
-        "quick": [
-            ("GLM-4 Flash - Fast", "glm-4-flash"),
-            ("GLM-4 - Standard", "glm-4"),
-            ("GLM-4 Plus - Enhanced", "glm-4-plus"),
-        ],
-        "deep": [
-            ("GLM-4 Plus - Enhanced", "glm-4-plus"),
-            ("GLM-4 - Standard", "glm-4"),
-        ],
-    },
-    "siliconflow": {
-        "quick": [
-            ("Qwen/Qwen2.5-7B-Instruct", "Qwen/Qwen2.5-7B-Instruct"),
-            ("deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3"),
-        ],
-        "deep": [
-            ("deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-R1"),
-            ("Qwen/Qwen2.5-72B-Instruct", "Qwen/Qwen2.5-72B-Instruct"),
-        ],
-    },
-    "qianfan": {
-        "quick": [
-            ("ERNIE 4.0 - Most capable", "ernie-4.0-8k"),
-            ("ERNIE 3.5 - Balanced", "ernie-3.5-8k"),
-        ],
-        "deep": [
-            ("ERNIE 4.0 - Most capable", "ernie-4.0-8k"),
-            ("ERNIE 4.0 Turbo", "ernie-4.0-turbo-8k"),
-        ],
-    },
-}
-
-PROVIDER_DISPLAY_MAP = {
-    "DeepSeek": ("deepseek", "https://api.deepseek.com/v1"),
-    "阿里百炼 (DashScope)": (
-        "dashscope",
-        "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    ),
-    "智谱AI (Zhipu)": ("zhipu", "https://open.bigmodel.cn/api/paas/v4"),
-    "SiliconFlow": ("siliconflow", "https://api.siliconflow.cn/v1"),
-    "百度千帆 (Qianfan)": ("qianfan", "https://qianfan.baidubce.com/v2"),
-}
 
 
 def get_ticker() -> str:
@@ -134,10 +67,7 @@ def get_analysis_date() -> str:
 
     date = questionary.text(
         "Enter the analysis date (YYYY-MM-DD):",
-        validate=lambda x: (
-            validate_date(x.strip())
-            or "Please enter a valid date in YYYY-MM-DD format."
-        ),
+        validate=lambda x: validate_date(x.strip()) or "Please enter a valid date in YYYY-MM-DD format.",
         style=questionary.Style(
             [
                 ("text", "fg:green"),
@@ -169,9 +99,7 @@ def select_analysts(ticker: str = None) -> List[AnalystType]:
 
     choices = questionary.checkbox(
         "Select Your [Analysts Team]:",
-        choices=[
-            questionary.Choice(display, value=value) for display, value in analyst_order
-        ],
+        choices=[questionary.Choice(display, value=value) for display, value in analyst_order],
         instruction="\n- Press Space to select/unselect analysts\n- Press 'a' to select/unselect all\n- Press Enter when done",
         validate=lambda x: len(x) > 0 or "You must select at least one analyst.",
         style=questionary.Style(
@@ -203,9 +131,7 @@ def select_research_depth() -> int:
 
     choice = questionary.select(
         "Select Your [Research Depth]:",
-        choices=[
-            questionary.Choice(display, value=value) for display, value in DEPTH_OPTIONS
-        ],
+        choices=[questionary.Choice(display, value=value) for display, value in DEPTH_OPTIONS],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
             [
@@ -270,148 +196,85 @@ def select_openrouter_model() -> str:
     return choice
 
 
-def _get_china_model_options(provider_key: str, mode: str):
-    """Get model options for Chinese LLM providers."""
-    return CHINA_PROVIDER_MODELS.get(provider_key, {}).get(mode, [])
+def _prompt_custom_model_id() -> str:
+    """Prompt user to type a custom model ID."""
+    return (
+        questionary.text(
+            "Enter model ID:",
+            validate=lambda x: len(x.strip()) > 0 or "Please enter a model ID.",
+        )
+        .ask()
+        .strip()
+    )
+
+
+def _select_model(provider: str, mode: str) -> str:
+    """Select a model for the given provider and mode (quick/deep)."""
+    if provider.lower() == "openrouter":
+        return select_openrouter_model()
+
+    if provider.lower() == "azure":
+        return (
+            questionary.text(
+                f"Enter Azure deployment name ({mode}-thinking):",
+                validate=lambda x: len(x.strip()) > 0 or "Please enter a deployment name.",
+            )
+            .ask()
+            .strip()
+        )
+
+    choice = questionary.select(
+        f"Select Your [{mode.title()}-Thinking LLM Engine]:",
+        choices=[questionary.Choice(display, value=value) for display, value in get_model_options(provider, mode)],
+        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        style=questionary.Style(
+            [
+                ("selected", "fg:magenta noinherit"),
+                ("highlighted", "fg:magenta noinherit"),
+                ("pointer", "fg:magenta noinherit"),
+            ]
+        ),
+    ).ask()
+
+    if choice is None:
+        console.print(f"\n[red]No {mode} thinking llm engine selected. Exiting...[/red]")
+        exit(1)
+
+    if choice == "custom":
+        return _prompt_custom_model_id()
+
+    return choice
 
 
 def select_shallow_thinking_agent(provider) -> str:
     """Select shallow thinking llm engine using an interactive selection."""
-
-    if provider.lower() == "openrouter":
-        return select_openrouter_model()
-
-    china_options = _get_china_model_options(provider.lower(), "quick")
-    if china_options:
-        choice = questionary.select(
-            "Select Your [Quick-Thinking LLM Engine]:",
-            choices=[
-                questionary.Choice(display, value=value)
-                for display, value in china_options
-            ],
-            instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
-            style=questionary.Style(
-                [
-                    ("selected", "fg:magenta noinherit"),
-                    ("highlighted", "fg:magenta noinherit"),
-                    ("pointer", "fg:magenta noinherit"),
-                ]
-            ),
-        ).ask()
-
-        if choice is None:
-            console.print(
-                "\n[red]No shallow thinking llm engine selected. Exiting...[/red]"
-            )
-            exit(1)
-
-        return choice
-
-    choice = questionary.select(
-        "Select Your [Quick-Thinking LLM Engine]:",
-        choices=[
-            questionary.Choice(display, value=value)
-            for display, value in get_model_options(provider, "quick")
-        ],
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
-        style=questionary.Style(
-            [
-                ("selected", "fg:magenta noinherit"),
-                ("highlighted", "fg:magenta noinherit"),
-                ("pointer", "fg:magenta noinherit"),
-            ]
-        ),
-    ).ask()
-
-    if choice is None:
-        console.print(
-            "\n[red]No shallow thinking llm engine selected. Exiting...[/red]"
-        )
-        exit(1)
-
-    return choice
+    return _select_model(provider, "quick")
 
 
 def select_deep_thinking_agent(provider) -> str:
     """Select deep thinking llm engine using an interactive selection."""
-
-    if provider.lower() == "openrouter":
-        return select_openrouter_model()
-
-    china_options = _get_china_model_options(provider.lower(), "deep")
-    if china_options:
-        choice = questionary.select(
-            "Select Your [Deep-Thinking LLM Engine]:",
-            choices=[
-                questionary.Choice(display, value=value)
-                for display, value in china_options
-            ],
-            instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
-            style=questionary.Style(
-                [
-                    ("selected", "fg:magenta noinherit"),
-                    ("highlighted", "fg:magenta noinherit"),
-                    ("pointer", "fg:magenta noinherit"),
-                ]
-            ),
-        ).ask()
-
-        if choice is None:
-            console.print(
-                "\n[red]No deep thinking llm engine selected. Exiting...[/red]"
-            )
-            exit(1)
-
-        return choice
-
-    choice = questionary.select(
-        "Select Your [Deep-Thinking LLM Engine]:",
-        choices=[
-            questionary.Choice(display, value=value)
-            for display, value in get_model_options(provider, "deep")
-        ],
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
-        style=questionary.Style(
-            [
-                ("selected", "fg:magenta noinherit"),
-                ("highlighted", "fg:magenta noinherit"),
-                ("pointer", "fg:magenta noinherit"),
-            ]
-        ),
-    ).ask()
-
-    if choice is None:
-        console.print("\n[red]No deep thinking llm engine selected. Exiting...[/red]")
-        exit(1)
-
-    return choice
+    return _select_model(provider, "deep")
 
 
 def select_llm_provider() -> tuple[str, str | None]:
     """Select the LLM provider and its API endpoint."""
-    BASE_URLS = [
-        ("OpenAI", "https://api.openai.com/v1"),
-        ("Google", None),
-        ("Anthropic", "https://api.anthropic.com/"),
-        ("xAI", "https://api.x.ai/v1"),
-        ("Openrouter", "https://openrouter.ai/api/v1"),
-        ("Ollama", "http://localhost:11434/v1"),
-        ("DeepSeek", "https://api.deepseek.com/v1"),
-        (
-            "\u963f\u91cc\u767e\u70bc (DashScope)",
-            "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        ),
-        ("\u667a\u8c31AI (Zhipu)", "https://open.bigmodel.cn/api/paas/v4"),
-        ("SiliconFlow", "https://api.siliconflow.cn/v1"),
-        ("\u767e\u5ea6\u5343\u5e06 (Qianfan)", "https://qianfan.baidubce.com/v2"),
+    # (display_name, provider_key, base_url)
+    PROVIDERS = [
+        ("OpenAI", "openai", "https://api.openai.com/v1"),
+        ("Google", "google", None),
+        ("Anthropic", "anthropic", "https://api.anthropic.com/"),
+        ("xAI", "xai", "https://api.x.ai/v1"),
+        ("DeepSeek", "deepseek", "https://api.deepseek.com"),
+        ("Qwen", "qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+        ("GLM", "glm", "https://open.bigmodel.cn/api/paas/v4/"),
+        ("OpenRouter", "openrouter", "https://openrouter.ai/api/v1"),
+        ("Azure OpenAI", "azure", None),
+        ("Ollama", "ollama", "http://localhost:11434/v1"),
     ]
 
     choice = questionary.select(
         "Select your LLM Provider:",
-        choices=[
-            questionary.Choice(display, value=(display, value))
-            for display, value in BASE_URLS
-        ],
+        choices=[questionary.Choice(display, value=(provider_key, url)) for display, provider_key, url in PROVIDERS],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
             [
@@ -423,13 +286,11 @@ def select_llm_provider() -> tuple[str, str | None]:
     ).ask()
 
     if choice is None:
-        console.print("\n[red]no OpenAI backend selected. Exiting...[/red]")
+        console.print("\n[red]No LLM provider selected. Exiting...[/red]")
         exit(1)
 
-    display_name, url = choice
-    print(f"You selected: {display_name}\tURL: {url}")
-
-    return display_name, url
+    provider, url = choice
+    return provider, url
 
 
 def ask_openai_reasoning_effort() -> str:
@@ -527,61 +388,10 @@ def ask_output_language() -> str:
         return (
             questionary.text(
                 "Enter language name (e.g. Turkish, Vietnamese, Thai, Indonesian):",
-                validate=lambda x: (
-                    len(x.strip()) > 0 or "Please enter a language name."
-                ),
+                validate=lambda x: len(x.strip()) > 0 or "Please enter a language name.",
             )
             .ask()
             .strip()
         )
 
     return choice
-
-
-def select_market() -> str:
-    """Let user select which stock market to analyze."""
-    MARKET_OPTIONS = [
-        ("\u7f8e\u80a1 (US Market)", "us"),
-        ("A\u80a1 (China A-Share Market)", "china_a"),
-        ("\u6e2f\u80a1 (Hong Kong Market)", "hong_kong"),
-    ]
-
-    choice = questionary.select(
-        "Select Your [Stock Market]:",
-        choices=[
-            questionary.Choice(display, value=value)
-            for display, value in MARKET_OPTIONS
-        ],
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
-        style=questionary.Style(
-            [
-                ("selected", "fg:yellow noinherit"),
-                ("highlighted", "fg:yellow noinherit"),
-                ("pointer", "fg:yellow noinherit"),
-            ]
-        ),
-    ).ask()
-
-    if choice is None:
-        console.print("\n[red]No market selected. Exiting...[/red]")
-        exit(1)
-
-    return choice
-
-
-def resolve_provider_key(display_name: str) -> str:
-    """Resolve LLM provider display name to internal key for config."""
-    display_lower = display_name.lower()
-    if display_lower in (
-        "openai",
-        "google",
-        "anthropic",
-        "xai",
-        "openrouter",
-        "ollama",
-    ):
-        return display_lower
-    for cn_display, (key, _) in PROVIDER_DISPLAY_MAP.items():
-        if cn_display.lower() == display_lower or key == display_lower:
-            return key
-    return display_lower
