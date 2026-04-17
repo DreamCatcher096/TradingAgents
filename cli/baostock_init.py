@@ -61,7 +61,7 @@ def test_connection():
                 )
             else:
                 console.print(
-                    f"[yellow]  Query returned no data (possibly market holiday)[/yellow]"
+                    "[yellow]  Query returned no data (possibly market holiday)[/yellow]"
                 )
                 console.print(f"  Query error: {rs.error_msg}")
         finally:

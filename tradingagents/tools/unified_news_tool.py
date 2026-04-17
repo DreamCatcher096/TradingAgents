@@ -48,7 +48,7 @@ class UnifiedNewsAnalyzer:
         logger.info(f"[统一新闻工具] 新闻获取完成，结果长度: {len(result)} 字符")
 
         if not result or len(result.strip()) < 50:
-            logger.warning(f"[统一新闻工具] 返回结果异常短或为空！")
+            logger.warning("[统一新闻工具] 返回结果异常短或为空！")
 
         return result
 

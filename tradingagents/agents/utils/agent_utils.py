@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from langchain_core.messages import HumanMessage, RemoveMessage
 
@@ -7,13 +7,8 @@ from tradingagents.agents.utils.core_stock_tools import get_stock_data
 from tradingagents.agents.utils.technical_indicators_tools import get_indicators
 from tradingagents.agents.utils.fundamental_data_tools import (
     get_fundamentals,
-    get_balance_sheet,
-    get_cashflow,
-    get_income_statement,
 )
 from tradingagents.agents.utils.news_data_tools import (
-    get_news,
-    get_insider_transactions,
     get_global_news,
 )
 from tradingagents.dataflows.china_router import ChinaDataRouter
@@ -79,25 +74,19 @@ class Toolkit:
 
     def __init__(self, config: dict | None = None):
         self.config = config or DEFAULT_CONFIG
-        self.china_router = ChinaDataRouter(
-            provider_order=self.config.get("data_source_priority")
-        )
+        self.china_router = ChinaDataRouter(provider_order=self.config.get("data_source_priority"))
         self.online = self.config.get("online_tools", True)
         self._unified_news_tool = create_unified_news_tool(self)
 
-    def get_stock_market_data_unified(
-        self, symbol: str, start_date: str, end_date: str
-    ) -> str:
+    def get_stock_market_data_unified(self, symbol: str, start_date: str, end_date: str) -> str:
+        """Fetch unified stock market data (OHLCV) for a symbol across markets."""
         market = StockUtils.identify_stock_market(symbol)
         if market == StockMarket.CHINA_A:
             return self.china_router.get_stock_data(symbol, start_date, end_date)
-        return get_stock_data.invoke(
-            {"symbol": symbol, "start_date": start_date, "end_date": end_date}
-        )
+        return get_stock_data.invoke({"symbol": symbol, "start_date": start_date, "end_date": end_date})
 
-    def get_stock_fundamentals_unified(
-        self, symbol: str, curr_date: str | None = None
-    ) -> str | dict:
+    def get_stock_fundamentals_unified(self, symbol: str, curr_date: str | None = None) -> str | dict:
+        """Fetch unified fundamental financial data for a symbol across markets."""
         market = StockUtils.identify_stock_market(symbol)
         if market == StockMarket.CHINA_A:
             return self.china_router.get_fundamentals(symbol)
@@ -105,9 +94,8 @@ class Toolkit:
             curr_date = datetime.now().strftime("%Y-%m-%d")
         return get_fundamentals.invoke({"ticker": symbol, "curr_date": curr_date})
 
-    def get_stock_news_unified(
-        self, stock_code: str, max_news: int = 10, model_info: str = ""
-    ) -> str:
+    def get_stock_news_unified(self, stock_code: str, max_news: int = 10, model_info: str = "") -> str:
+        """Fetch unified news for a given stock code."""
         return self._unified_news_tool(stock_code, max_news, model_info)
 
     def get_stock_sentiment_unified(self, stock_code: str, max_news: int = 10) -> str:
@@ -206,6 +194,7 @@ class Toolkit:
         curr_date: str,
         look_back_days: int = 30,
     ) -> str:
+        """Fetch unified technical indicators for a symbol."""
         return get_indicators.invoke(
             {
                 "symbol": symbol,
@@ -221,6 +210,7 @@ class Toolkit:
         look_back_days: int = 7,
         limit: int = 5,
     ) -> str:
+        """Fetch unified global macroeconomic news."""
         return get_global_news.invoke(
             {
                 "curr_date": curr_date,

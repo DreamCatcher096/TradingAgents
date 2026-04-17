@@ -1,9 +1,8 @@
 import os
-import time
 import logging
 from typing import Any, Dict, List, Optional, Union
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+from langchain_core.outputs import ChatResult
 from langchain_openai import ChatOpenAI
 from langchain_core.callbacks import CallbackManagerForLLMRun
 
@@ -70,11 +69,6 @@ class ChatDeepSeek(ChatOpenAI):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> ChatResult:
-        start_time = time.time()
-
-        session_id = kwargs.pop("session_id", None)
-        analysis_type = kwargs.pop("analysis_type", None)
-
         try:
             result = super()._generate(messages, stop, run_manager, **kwargs)
 

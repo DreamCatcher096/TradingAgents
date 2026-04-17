@@ -3,8 +3,7 @@
 import os
 from pathlib import Path
 import json
-from datetime import date
-from typing import Dict, Any, Tuple, List, Optional
+from typing import Dict, Any, List, Optional
 
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode
@@ -27,11 +26,6 @@ except ImportError:
 from tradingagents.agents import *
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.agents.utils.memory import FinancialSituationMemory
-from tradingagents.agents.utils.agent_states import (
-    AgentState,
-    InvestDebateState,
-    RiskDebateState,
-)
 from tradingagents.dataflows.config import set_config
 
 from tradingagents.agents.utils.agent_utils import Toolkit

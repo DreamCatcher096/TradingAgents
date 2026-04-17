@@ -49,3 +49,16 @@ include = ["tradingagents*", "cli*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.11",
+]
+
+[tool.ruff]
+line-length = 150
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "F403", "F405"]
+per-file-ignores = { "tests/*" = ["E402"] }

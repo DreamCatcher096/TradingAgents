@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -83,7 +82,7 @@ class ChinaDataCache:
         self._save_meta(path)
 
     def get_fundamentals(self, symbol: str, provider: str) -> dict | None:
-        path = self._cache_path("fundamentals", symbol, provider, f"fundamentals.json")
+        path = self._cache_path("fundamentals", symbol, provider, "fundamentals.json")
         if self._is_valid(path, "fundamentals"):
             try:
                 with open(path, "r", encoding="utf-8") as f:
@@ -93,7 +92,7 @@ class ChinaDataCache:
         return None
 
     def save_fundamentals(self, data: dict, symbol: str, provider: str):
-        path = self._cache_path("fundamentals", symbol, provider, f"fundamentals.json")
+        path = self._cache_path("fundamentals", symbol, provider, "fundamentals.json")
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

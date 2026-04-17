@@ -77,7 +77,6 @@ china_router_stub.ChinaDataRouter = _FakeChinaRouter
 sys.modules["tradingagents.dataflows.china_router"] = china_router_stub
 
 # Import stock_utils normally (it has no heavy deps)
-from tradingagents.utils.stock_utils import StockMarket
 
 # Load agent_utils directly to avoid triggering tradingagents.agents package imports
 agent_utils_path = (

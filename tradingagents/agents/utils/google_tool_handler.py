@@ -10,9 +10,8 @@ Google模型工具调用统一处理器
 
 import logging
 import time
-import traceback
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -300,7 +299,7 @@ class GoogleToolCallHandler:
                         fixed_tool_call["args"] = json.loads(fixed_tool_call["args"])
                     else:
                         fixed_tool_call["args"] = {}
-                except:
+                except Exception:
                     fixed_tool_call["args"] = {}
 
             if "id" not in fixed_tool_call or not isinstance(

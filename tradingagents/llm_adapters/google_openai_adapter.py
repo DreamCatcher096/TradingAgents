@@ -1,11 +1,9 @@
 import os
 import logging
-from typing import Any, Dict, List, Optional, Union, Sequence
+from typing import Any, Dict, List, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.tools import BaseTool
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.outputs import LLMResult
-from pydantic import Field, SecretStr
 
 logger = logging.getLogger(__name__)
 
@@ -291,7 +289,7 @@ def test_google_openai_connection(
         response = llm.invoke("Hello, please introduce yourself briefly.")
 
         if response and hasattr(response, "content") and response.content:
-            logger.info(f"Google AI connection successful")
+            logger.info("Google AI connection successful")
             return True
         else:
             logger.error("Google AI connection returned empty response")
@@ -325,7 +323,7 @@ def test_google_openai_function_calling(
             "Please use test_news_tool to query 'Apple Inc'"
         )
 
-        logger.info(f"Google AI Function Calling test completed")
+        logger.info("Google AI Function Calling test completed")
 
         if hasattr(response, "tool_calls") and response.tool_calls:
             logger.info(f"Tool calls: {len(response.tool_calls)}")

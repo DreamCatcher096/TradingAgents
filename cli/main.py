@@ -1,35 +1,31 @@
-from typing import Optional
 import datetime
 import typer
 from pathlib import Path
 from functools import wraps
 from rich.console import Console
 from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.live import Live
-from rich.columns import Columns
 from rich.markdown import Markdown
 from rich.layout import Layout
 from rich.text import Text
 from rich.table import Table
 from collections import deque
 import time
-from rich.tree import Tree
 from rich import box
 from rich.align import Align
 from rich.rule import Rule
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
-from cli.models import AnalystType
 from cli.utils import *
 from cli.announcements import fetch_announcements, display_announcements
 from cli.stats_handler import StatsCallbackHandler
 from tradingagents.utils.stock_utils import StockUtils, StockMarket
+
+# Load environment variables from .env file
+load_dotenv()
 
 console = Console()
 
@@ -1153,7 +1149,7 @@ def run_analysis():
     # Now start the display layout
     layout = create_layout()
 
-    with Live(layout, refresh_per_second=4) as live:
+    with Live(layout, refresh_per_second=4) as _:
         # Initial display
         update_display(layout, stats_handler=stats_handler, start_time=start_time)
 
@@ -1332,7 +1328,7 @@ def run_analysis():
 
         # Get final state and decision
         final_state = trace[-1]
-        decision = graph.process_signal(final_state["final_trade_decision"])
+        _ = graph.process_signal(final_state["final_trade_decision"])
 
         # Update all agent statuses to completed
         for agent in message_buffer.agent_status:

@@ -18,7 +18,6 @@ def create_fundamentals_analyst(llm, toolkit=None):
         instrument_context = build_instrument_context(ticker)
 
         tool_call_count = state.get("fundamentals_tool_call_count", 0)
-        max_tool_calls = 3
 
         if toolkit is not None:
             tools = [toolkit.get_stock_fundamentals_unified]
