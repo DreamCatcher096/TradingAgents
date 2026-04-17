@@ -1,23 +1,38 @@
+import logging
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
-    get_indicators,
     get_language_instruction,
-    get_stock_data,
 )
-from tradingagents.dataflows.config import get_config
+from tradingagents.agents.utils.google_tool_handler import GoogleToolCallHandler
+
+logger = logging.getLogger(__name__)
 
 
-def create_market_analyst(llm):
+def create_market_analyst(llm, toolkit=None):
 
     def market_analyst_node(state):
         current_date = state["trade_date"]
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        ticker = state["company_of_interest"]
+        instrument_context = build_instrument_context(ticker)
 
-        tools = [
-            get_stock_data,
-            get_indicators,
-        ]
+        tool_call_count = state.get("market_tool_call_count", 0)
+        max_tool_calls = 3
+
+        if toolkit is not None:
+            tools = [
+                toolkit.get_stock_market_data_unified,
+                toolkit.get_indicators_unified,
+            ]
+        else:
+            from tradingagents.agents.utils.agent_utils import (
+                get_stock_data,
+                get_indicators,
+            )
+
+            tools = [get_stock_data, get_indicators]
 
         system_message = (
             """You are a trading assistant tasked with analyzing financial markets. Your role is to select the **most relevant indicators** for a given market condition or trading strategy from the following list. The goal is to choose up to **8 indicators** that provide complementary insights without redundancy. Categories and each category's indicators are:
@@ -49,6 +64,15 @@ Volume-Based Indicators:
             + get_language_instruction()
         )
 
+        tool_names = []
+        for tool in tools:
+            if hasattr(tool, "name"):
+                tool_names.append(tool.name)
+            elif hasattr(tool, "__name__"):
+                tool_names.append(tool.__name__)
+            else:
+                tool_names.append(str(tool))
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -67,22 +91,61 @@ Volume-Based Indicators:
         )
 
         prompt = prompt.partial(system_message=system_message)
-        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+        prompt = prompt.partial(tool_names=", ".join(tool_names))
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(instrument_context=instrument_context)
 
         chain = prompt | llm.bind_tools(tools)
-
         result = chain.invoke(state["messages"])
 
         report = ""
 
-        if len(result.tool_calls) == 0:
+        if hasattr(
+            GoogleToolCallHandler, "is_google_model"
+        ) and GoogleToolCallHandler.is_google_model(llm):
+            logger.info(
+                "[Market Analyst] Detected Google model, using unified tool call handler"
+            )
+            analysis_prompt_template = GoogleToolCallHandler.create_analysis_prompt(
+                ticker=ticker,
+                company_name=ticker,
+                analyst_type="market analysis",
+                specific_requirements="Focus on market data, price trends, trading volume, and technical indicators.",
+            )
+            report, _ = GoogleToolCallHandler.handle_google_tool_calls(
+                result=result,
+                llm=llm,
+                tools=tools,
+                state=state,
+                analysis_prompt_template=analysis_prompt_template,
+                analyst_name="Market Analyst",
+            )
+        elif len(result.tool_calls) == 0:
             report = result.content
+            if toolkit is not None:
+                try:
+                    fallback_data = toolkit.get_stock_market_data_unified.invoke(
+                        {
+                            "symbol": ticker,
+                            "start_date": current_date,
+                            "end_date": current_date,
+                        }
+                    )
+                    tool_call_count += 1
+                    report = f"{report}\n\n{fallback_data}".strip()
+                except Exception as e:
+                    logger.error(
+                        f"[Market Analyst] Force fallback tool call failed: {e}"
+                    )
+
+        tool_call_count += (
+            len(result.tool_calls) if hasattr(result, "tool_calls") else 0
+        )
 
         return {
             "messages": [result],
             "market_report": report,
+            "market_tool_call_count": tool_call_count,
         }
 
     return market_analyst_node

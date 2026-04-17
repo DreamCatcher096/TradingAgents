@@ -1,6 +1,15 @@
 from typing import Any, Optional
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:  # pragma: no cover - exercised in lightweight test envs
+
+    class ChatGoogleGenerativeAI:  # type: ignore[override]
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "langchain_google_genai is required to instantiate GoogleClient"
+            )
+
 
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
@@ -31,7 +40,13 @@ class GoogleClient(BaseLLMClient):
         if self.base_url:
             llm_kwargs["base_url"] = self.base_url
 
-        for key in ("timeout", "max_retries", "callbacks", "http_client", "http_async_client"):
+        for key in (
+            "timeout",
+            "max_retries",
+            "callbacks",
+            "http_client",
+            "http_async_client",
+        ):
             if key in self.kwargs:
                 llm_kwargs[key] = self.kwargs[key]
 

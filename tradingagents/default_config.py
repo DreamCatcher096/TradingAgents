@@ -13,9 +13,9 @@ DEFAULT_CONFIG = {
     "quick_think_llm": "gpt-5.4-mini",
     "backend_url": "https://api.openai.com/v1",
     # Provider-specific thinking configuration
-    "google_thinking_level": None,      # "high", "minimal", etc.
-    "openai_reasoning_effort": None,    # "medium", "high", "low"
-    "anthropic_effort": None,           # "high", "medium", "low"
+    "google_thinking_level": None,  # "high", "minimal", etc.
+    "openai_reasoning_effort": None,  # "medium", "high", "low"
+    "anthropic_effort": None,  # "high", "medium", "low"
     # Output language for analyst reports and final decision
     # Internal agent debate stays in English for reasoning quality
     "output_language": "English",
@@ -26,13 +26,18 @@ DEFAULT_CONFIG = {
     # Data vendor configuration
     # Category-level configuration (default for all tools in category)
     "data_vendors": {
-        "core_stock_apis": "yfinance",       # Options: alpha_vantage, yfinance
+        "core_stock_apis": "yfinance",  # Options: alpha_vantage, yfinance
         "technical_indicators": "yfinance",  # Options: alpha_vantage, yfinance
-        "fundamental_data": "yfinance",      # Options: alpha_vantage, yfinance
-        "news_data": "yfinance",             # Options: alpha_vantage, yfinance
+        "fundamental_data": "yfinance",  # Options: alpha_vantage, yfinance
+        "news_data": "yfinance",  # Options: alpha_vantage, yfinance
     },
     # Tool-level configuration (takes precedence over category-level)
     "tool_vendors": {
         # Example: "get_stock_data": "alpha_vantage",  # Override category default
     },
+    # China-specific configuration
+    "online_tools": True,
+    "data_source_priority": ["akshare", "tushare", "baostock"],
+    "quick_think_llm_provider": None,  # fallback to llm_provider if not set
+    "deep_think_llm_provider": None,  # fallback to llm_provider if not set
 }

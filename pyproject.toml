@@ -32,6 +32,15 @@ dependencies = [
     "yfinance>=0.2.63",
 ]
 
+[project.optional-dependencies]
+cn = [
+    "akshare>=1.15.0",
+    "baostock>=0.8.8",
+    "curl-cffi>=0.10.0",
+    "pydantic-settings>=2.0.0",
+    "tushare>=1.4.0",
+]
+
 [project.scripts]
 tradingagents = "cli.main:app"
 

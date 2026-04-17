@@ -146,6 +146,43 @@ export ALPHA_VANTAGE_API_KEY=...   # Alpha Vantage
 
 For local models, configure Ollama with `llm_provider: "ollama"` in your config.
 
+### A-Share and Domestic LLM Support (New)
+
+TradingAgents now provides first-class support for China A-shares and domestic LLM providers, ported from the `TradingAgents-CN` ecosystem.
+
+**Supported A-share data sources:**
+- **AKShare** (东方财富实时数据) — `pip install akshare curl-cffi`
+- **Tushare** (专业财经数据) — `pip install tushare`, requires `TUSHARE_TOKEN`
+- **BaoStock** ( lightweight historical data) — `pip install baostock`
+
+**Supported domestic LLM providers:**
+- **DeepSeek** (`DEEPSEEK_API_KEY`) — `deepseek-chat`, `deepseek-reasoner`
+- **Alibaba DashScope** (`DASHSCOPE_API_KEY`) — `qwen-turbo`, `qwen-plus`, `qwen-max`
+- **Zhipu AI** (`ZHIPU_API_KEY`) — `glm-4`, `glm-4-flash`
+- **Baidu Qianfan** (`QIANFAN_API_KEY`)
+- **SiliconFlow** (`SILICONFLOW_API_KEY`)
+
+**Quick start for A-shares:**
+```bash
+# Install optional China dependencies
+pip install -e ".[cn]"
+
+# Set required environment variables
+export TUSHARE_TOKEN=your_token
+export DASHSCOPE_API_KEY=your_key
+
+# Run CLI
+python -m cli.main
+# Input: 600519.SH, 2025-04-15, select "China Market Analyst", choose DashScope/DeepSeek
+```
+
+**Data source diagnostics:**
+```bash
+python -m cli.akshare_init   # Verify AKShare connectivity
+python -m cli.tushare_init   # Validate Tushare token
+python -m cli.baostock_init  # Test BaoStock login
+```
+
 Alternatively, copy `.env.example` to `.env` and fill in your keys:
 ```bash
 cp .env.example .env
@@ -178,7 +215,7 @@ An interface will appear showing results as they load, letting you track the age
 
 ### Implementation Details
 
-We built TradingAgents with LangGraph to ensure flexibility and modularity. The framework supports multiple LLM providers: OpenAI, Google, Anthropic, xAI, OpenRouter, and Ollama.
+We built TradingAgents with LangGraph to ensure flexibility and modularity. The framework supports multiple LLM providers: OpenAI, Google, Anthropic, xAI, OpenRouter, Ollama, and domestic providers including DeepSeek, DashScope (Qwen), Zhipu, Qianfan, and SiliconFlow.
 
 ### Python Usage
 
@@ -209,6 +246,28 @@ config["max_debate_rounds"] = 2
 
 ta = TradingAgentsGraph(debug=True, config=config)
 _, decision = ta.propagate("NVDA", "2026-01-15")
+print(decision)
+```
+
+**Example for A-shares with domestic LLMs:**
+
+```python
+from tradingagents.graph.trading_graph import TradingAgentsGraph
+from tradingagents.default_config import DEFAULT_CONFIG
+
+config = DEFAULT_CONFIG.copy()
+config["llm_provider"] = "deepseek"           # or dashscope, zhipu, qianfan, siliconflow
+config["deep_think_llm"] = "deepseek-reasoner"
+config["quick_think_llm"] = "deepseek-chat"
+config["online_tools"] = True
+config["data_source_priority"] = ["akshare", "tushare", "baostock"]
+config["output_language"] = "Chinese"
+
+# Select analysts including the China Market Analyst
+selected = ["china_market", "fundamentals", "news"]
+
+ta = TradingAgentsGraph(selected_analysts=selected, debug=True, config=config)
+_, decision = ta.propagate("600519.SH", "2025-04-15")
 print(decision)
 ```
 

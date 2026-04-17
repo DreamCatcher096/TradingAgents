@@ -7,6 +7,15 @@ from langgraph.prebuilt import ToolNode
 from tradingagents.agents import *
 from tradingagents.agents.utils.agent_states import AgentState
 
+try:
+    from tradingagents.agents.analysts.china_market_analyst import (
+        create_china_market_analyst,
+    )
+
+    HAS_CHINA_MARKET = True
+except ImportError:
+    HAS_CHINA_MARKET = False
+
 from .conditional_logic import ConditionalLogic
 
 
@@ -18,6 +27,7 @@ class GraphSetup:
         quick_thinking_llm: Any,
         deep_thinking_llm: Any,
         tool_nodes: Dict[str, ToolNode],
+        toolkit,
         bull_memory,
         bear_memory,
         trader_memory,
@@ -29,6 +39,7 @@ class GraphSetup:
         self.quick_thinking_llm = quick_thinking_llm
         self.deep_thinking_llm = deep_thinking_llm
         self.tool_nodes = tool_nodes
+        self.toolkit = toolkit
         self.bull_memory = bull_memory
         self.bear_memory = bear_memory
         self.trader_memory = trader_memory
@@ -43,6 +54,7 @@ class GraphSetup:
 
         Args:
             selected_analysts (list): List of analyst types to include. Options are:
+                - "china_market": China market analyst (runs first if present)
                 - "market": Market analyst
                 - "social": Social media analyst
                 - "news": News analyst
@@ -51,35 +63,49 @@ class GraphSetup:
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
 
+        # Ensure china_market runs first when present
+        if "china_market" in selected_analysts:
+            selected_analysts = ["china_market"] + [
+                a for a in selected_analysts if a != "china_market"
+            ]
+
         # Create analyst nodes
         analyst_nodes = {}
         delete_nodes = {}
         tool_nodes = {}
 
+        if "china_market" in selected_analysts and HAS_CHINA_MARKET:
+            analyst_nodes["china_market"] = create_china_market_analyst(
+                self.quick_thinking_llm, self.toolkit
+            )
+            delete_nodes["china_market"] = create_msg_delete()
+            tool_nodes["china_market"] = self.tool_nodes["china_market"]
+
         if "market" in selected_analysts:
             analyst_nodes["market"] = create_market_analyst(
-                self.quick_thinking_llm
+                self.quick_thinking_llm, toolkit=self.toolkit
             )
             delete_nodes["market"] = create_msg_delete()
             tool_nodes["market"] = self.tool_nodes["market"]
 
         if "social" in selected_analysts:
             analyst_nodes["social"] = create_social_media_analyst(
-                self.quick_thinking_llm
+                self.quick_thinking_llm, toolkit=self.toolkit
             )
             delete_nodes["social"] = create_msg_delete()
             tool_nodes["social"] = self.tool_nodes["social"]
 
         if "news" in selected_analysts:
             analyst_nodes["news"] = create_news_analyst(
-                self.quick_thinking_llm
+                self.quick_thinking_llm, toolkit=self.toolkit
             )
             delete_nodes["news"] = create_msg_delete()
             tool_nodes["news"] = self.tool_nodes["news"]
 
         if "fundamentals" in selected_analysts:
             analyst_nodes["fundamentals"] = create_fundamentals_analyst(
-                self.quick_thinking_llm
+                self.quick_thinking_llm,
+                toolkit=self.toolkit,
             )
             delete_nodes["fundamentals"] = create_msg_delete()
             tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
@@ -146,7 +172,7 @@ class GraphSetup:
 
             # Connect to next analyst or to Bull Researcher if this is the last analyst
             if i < len(selected_analysts) - 1:
-                next_analyst = f"{selected_analysts[i+1].capitalize()} Analyst"
+                next_analyst = f"{selected_analysts[i + 1].capitalize()} Analyst"
                 workflow.add_edge(current_clear, next_analyst)
             else:
                 workflow.add_edge(current_clear, "Bull Researcher")
