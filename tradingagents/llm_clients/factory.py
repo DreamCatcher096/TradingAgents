@@ -14,6 +14,7 @@ _OPENAI_COMPATIBLE = (
     "qwen",
     "glm",
     "kimi",
+    "siliconflow",
     "ollama",
     "openrouter",
 )

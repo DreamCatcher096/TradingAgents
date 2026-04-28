@@ -1,3 +1,4 @@
+import os
 import questionary
 from typing import List, Tuple
 
@@ -268,6 +269,7 @@ def select_llm_provider() -> tuple[str, str | None]:
         ("Qwen", "qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
         ("GLM", "glm", "https://open.bigmodel.cn/api/paas/v4/"),
         ("Kimi", "kimi", "https://api.kimi.com/coding/v1"),
+        ("SiliconFlow", "siliconflow", os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")),
         ("OpenRouter", "openrouter", "https://openrouter.ai/api/v1"),
         ("Azure OpenAI", "azure", None),
         ("Ollama", "ollama", "http://localhost:11434/v1"),

@@ -102,13 +102,21 @@ MODEL_OPTIONS: ProviderModeOptions = {
     # OpenRouter: fetched dynamically. Azure: any deployed model name.
     "kimi": {
         "quick": [
-            ("Kimi K2 - Fast coding assistant", "kimi-k2-0711-preview"),
-            ("Kimi K2.5 - Balanced reasoning", "kimi-k2.5"),
+            ("Kimi for Coding", "kimi-for-coding"),
             ("Custom model ID", "custom"),
         ],
         "deep": [
-            ("Kimi K2.5 - Deep reasoning", "kimi-k2.5"),
-            ("Kimi K2 - Coding and analysis", "kimi-k2-0711-preview"),
+            ("Kimi for Coding", "kimi-for-coding"),
+            ("Custom model ID", "custom"),
+        ],
+    },
+    "siliconflow": {
+        "quick": [
+            ("DeepSeek V3.2", "Pro/deepseek-ai/DeepSeek-V3.2"),
+            ("Custom model ID", "custom"),
+        ],
+        "deep": [
+            ("DeepSeek V3.2", "Pro/deepseek-ai/DeepSeek-V3.2"),
             ("Custom model ID", "custom"),
         ],
     },

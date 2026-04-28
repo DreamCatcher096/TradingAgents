@@ -20,6 +20,30 @@ class NormalizedChatOpenAI(ChatOpenAI):
         return normalize_content(super().invoke(input, config, **kwargs))
 
 
+class KimiChatOpenAI(NormalizedChatOpenAI):
+    """ChatOpenAI specialized for Kimi Coding API compatibility.
+
+    Kimi's tool-calling endpoint requires every assistant message that
+    contains *tool_calls* to also carry a *reasoning_content* field.
+    Standard OpenAI-compatible SDKs drop this field, so we inject an
+    empty string right before the request is serialized.
+    """
+
+    def _get_request_payload(
+        self,
+        input_,
+        *,
+        stop: "list[str] | None" = None,
+        **kwargs: Any,
+    ) -> dict:
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        for message in payload.get("messages", []):
+            if message.get("role") == "assistant" and "tool_calls" in message:
+                if "reasoning_content" not in message:
+                    message["reasoning_content"] = " "
+        return payload
+
+
 # Kwargs forwarded from user config to ChatOpenAI
 _PASSTHROUGH_KWARGS = (
     "timeout",
@@ -38,6 +62,7 @@ _PROVIDER_CONFIG = {
     "qwen": ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "DASHSCOPE_API_KEY"),
     "glm": ("https://api.z.ai/api/paas/v4/", "ZHIPU_API_KEY"),
     "kimi": ("https://api.kimi.com/coding/v1", "KIMI_API_KEY"),
+    "siliconflow": (os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"), "SILICONFLOW_API_KEY"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "ollama": ("http://localhost:11434/v1", None),
 }
@@ -80,9 +105,15 @@ class OpenAIClient(BaseLLMClient):
         elif self.base_url:
             llm_kwargs["base_url"] = self.base_url
 
-        # Kimi requires a custom User-Agent header
-        if self.provider == "kimi" and "http_client" not in llm_kwargs:
-            llm_kwargs["http_client"] = httpx.Client(headers={"User-Agent": "KimiCLI/1.30.0"})
+        # Kimi requires a custom User-Agent header.
+        # Use default_headers so the openai SDK actually forwards them.
+        if self.provider == "kimi":
+            llm_kwargs.setdefault("default_headers", {})
+            llm_kwargs["default_headers"]["User-Agent"] = "KimiCLI/1.6"
+            if "http_client" not in llm_kwargs:
+                llm_kwargs["http_client"] = httpx.Client(
+                    limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+                )
 
         # Forward user-provided kwargs
         for key in _PASSTHROUGH_KWARGS:
@@ -94,6 +125,8 @@ class OpenAIClient(BaseLLMClient):
         if self.provider == "openai":
             llm_kwargs["use_responses_api"] = True
 
+        if self.provider == "kimi":
+            return KimiChatOpenAI(**llm_kwargs)
         return NormalizedChatOpenAI(**llm_kwargs)
 
     def validate_model(self) -> bool:

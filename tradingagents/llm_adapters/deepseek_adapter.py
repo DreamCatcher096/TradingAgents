@@ -31,6 +31,10 @@ class ChatDeepSeek(ChatOpenAI):
         max_tokens: Optional[int] = None,
         **kwargs,
     ):
+        if api_key is not None and not _is_valid_api_key(api_key):
+            logger.warning("[DeepSeek] Provided API key is invalid, ignoring")
+            api_key = None
+
         if api_key is None:
             env_api_key = os.getenv("DEEPSEEK_API_KEY")
 
@@ -61,6 +65,47 @@ class ChatDeepSeek(ChatOpenAI):
         )
 
         self.model_name = model
+
+    def _get_request_payload(
+        self,
+        input_,
+        *,
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        messages = self._convert_input(input_).to_messages()
+
+        for source_message, payload_message in zip(messages, payload.get("messages", [])):
+            if not isinstance(source_message, AIMessage):
+                continue
+
+            reasoning_content = source_message.additional_kwargs.get("reasoning_content")
+            if reasoning_content is not None:
+                payload_message["reasoning_content"] = reasoning_content
+
+        return payload
+
+    def _create_chat_result(
+        self,
+        response: Union[Dict[str, Any], Any],
+        generation_info: Optional[Dict[str, Any]] = None,
+    ) -> ChatResult:
+        result = super()._create_chat_result(response, generation_info)
+        response_dict = (
+            response
+            if isinstance(response, dict)
+            else response.model_dump(
+                exclude={"choices": {"__all__": {"message": {"parsed"}}}}
+            )
+        )
+
+        for generation, choice in zip(result.generations, response_dict.get("choices", [])):
+            reasoning_content = choice.get("message", {}).get("reasoning_content")
+            if reasoning_content is not None and isinstance(generation.message, AIMessage):
+                generation.message.additional_kwargs["reasoning_content"] = reasoning_content
+
+        return result
 
     def _generate(
         self,
